@@ -22,7 +22,7 @@ def train():
 
         for batch_idx, minibatch in enumerate(train_loader):
 
-            data, relations, temperatures = data_loader.unpack_batches(
+            data, relations = data_loader.unpack_batches(
                 args, minibatch)
 
             optimizer.zero_grad()
@@ -88,7 +88,7 @@ def val(epoch):
 
     for batch_idx, minibatch in enumerate(valid_loader):
 
-        data, relations, temperatures = data_loader.unpack_batches(
+        data, relations = data_loader.unpack_batches(
             args, minibatch)
 
         with torch.no_grad():
@@ -134,7 +134,7 @@ def test(encoder, decoder, epoch):
 
     for batch_idx, minibatch in enumerate(test_loader):
 
-        data, relations, temperatures = data_loader.unpack_batches(
+        data, relations = data_loader.unpack_batches(
             args, minibatch)
 
         with torch.no_grad():
