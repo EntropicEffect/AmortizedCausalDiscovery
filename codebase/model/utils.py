@@ -83,7 +83,7 @@ def create_rel_matrix(args, num_atoms):
         num_atoms -= args.unobserved
 
     # Generate off-diagonal interaction graph
-    rel_matrix = torch.Tensor(np.random.normal(seize=(num_atoms, num_atoms)))
+    rel_matrix = torch.Tensor(np.random.normal(size=(num_atoms, num_atoms)))
 
     if args.cuda:
         rel_matrix = rel_matrix.cuda()
