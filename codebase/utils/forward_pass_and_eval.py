@@ -17,8 +17,7 @@ def forward_pass_and_eval(
     decoder,
     data,
     relations,
-    rel_rec,
-    rel_send,
+    rel_matrix,
     hard,
     data_encoder=None,
     data_decoder=None,
@@ -77,16 +76,15 @@ def forward_pass_and_eval(
                 logits,
                 unobserved,
                 losses["mse_unobserved"],
-            ) = encoder(data_encoder, rel_rec, rel_send, mask_idx=mask_idx)
+            ) = encoder(data_encoder, rel_matrix, mask_idx=mask_idx)
             data_decoder = utils_unobserved.add_unobserved_to_data(
                 args, data_decoder, unobserved, mask_idx, diff_data_enc_dec
             )
         else:
             # model only the edges
-            logits = encoder(data_encoder, rel_rec, rel_send)
+            logits = encoder(data_encoder, rel_matrix)
 
-    edges = logits  # utils.gumbel_softmax(logits, tau=args.temp, hard=hard)
-    prob = utils.my_softmax(logits, -1)
+    edges = logits
 
     target = data_decoder[:, :, 1:, :]
 
@@ -95,8 +93,7 @@ def forward_pass_and_eval(
         output = decoder(
             data_decoder,
             edges,
-            rel_rec,
-            rel_send,
+            rel_matrix,
             pred_steps=args.prediction_steps,
             burn_in=True,
             burn_in_steps=args.timesteps - args.prediction_steps,
@@ -105,8 +102,7 @@ def forward_pass_and_eval(
         output = decoder(
                 data_decoder,
                 edges,
-                rel_rec,
-                rel_send,
+                rel_matrix,
                 args.prediction_steps,
             )
 
@@ -130,7 +126,6 @@ def forward_pass_and_eval(
             output,
             target,
             logits,
-            prob,
             mask_idx,
             losses
         )
@@ -138,12 +133,15 @@ def forward_pass_and_eval(
     #################### MAIN LOSSES ####################
     ### latent losses ###
     losses["acc"] = utils.edge_accuracy(logits, relations)
+    losses["lasso_lat"] = 1e-4 * torch.sum(torch.abs(rel_matrix))
+    losses["ridge_lat"] = 1e-5 * torch.linalg.norm(rel_matrix)
 
     ### output losses ###
 
     losses["loss_mse"] = F.mse_loss(output, target)
 
-    total_loss = 0  # FIXME
+    total_loss = losses["loss_mse"] + \
+        losses["lasso_lat"] + losses["ridge_lat"]
     total_loss += args.teacher_forcing * losses["mse_unobserved"]
     losses["loss"] = total_loss
 

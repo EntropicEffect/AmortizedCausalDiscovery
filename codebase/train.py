@@ -33,8 +33,7 @@ def train():
                 decoder,
                 data,
                 relations,
-                rel_rec,
-                rel_send,
+                rel_matrix,
                 args.hard,
                 edge_probs=edge_probs,
             )
@@ -99,8 +98,7 @@ def val(epoch):
                 decoder,
                 data,
                 relations,
-                rel_rec,
-                rel_send,
+                rel_matrix,
                 True,
                 edge_probs=edge_probs,
                 testing=True,
@@ -151,8 +149,7 @@ def test(encoder, decoder, epoch):
                 decoder,
                 data,
                 relations,
-                rel_rec,
-                rel_send,
+                rel_matrix,
                 True,
                 data_encoder=data_encoder,
                 data_decoder=data_decoder,
@@ -190,7 +187,7 @@ if __name__ == "__main__":
         test_loader
     ) = data_loader.load_data(args)
 
-    rel_rec, rel_send = utils.create_rel_rec_send(args, args.num_atoms)
+    rel_matrix = utils.create_rel_matrix(args, args.num_atoms)
 
     encoder, decoder, optimizer, scheduler, edge_probs = model_loader.load_model(
         args)

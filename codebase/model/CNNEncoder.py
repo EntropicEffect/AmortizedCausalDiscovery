@@ -27,20 +27,20 @@ class CNNEncoder(Encoder):
         else:
             print("Using CNN encoder.")
 
-    def forward(self, inputs, rel_rec, rel_send):
+    def forward(self, inputs, rel_matrix):
 
         # Input has shape: [num_sims, num_atoms, num_timesteps, num_dims]
-        edges = self.node2edge_temporal(inputs, rel_rec, rel_send)
+        edges = self.node2edge_temporal(inputs, rel_matrix)
         x = self.cnn(edges)
         x = x.view(inputs.size(0), (inputs.size(1) - 1) * inputs.size(1), -1)
         x = self.mlp1(x)
         x_skip = x
 
         if self.factor:
-            x = self.edge2node(x, rel_rec, rel_send)
+            x = self.edge2node(x, rel_matrix)
             x = self.mlp2(x)
 
-            x = self.node2edge(x, rel_rec, rel_send)
+            x = self.node2edge(x, rel_matrix)
             x = torch.cat((x, x_skip), dim=2)  # Skip connection
             x = self.mlp3(x)
 

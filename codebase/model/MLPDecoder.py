@@ -2,6 +2,7 @@ import torch
 
 from model.modules import *
 
+
 class MLPDecoder(nn.Module):
     """Based on https://github.com/ethanfetaya/NRI (MIT License)."""
 
@@ -18,7 +19,7 @@ class MLPDecoder(nn.Module):
     ):
         super(MLPDecoder, self).__init__()
         self.msg_fc1 = nn.ModuleList(
-            [nn.Linear(2 * n_in_node, msg_hid) for _ in range(edge_types)]
+            [nn.Linear(n_in_node, msg_hid) for _ in range(edge_types)]
         )
         self.msg_fc2 = nn.ModuleList(
             [nn.Linear(msg_hid, msg_out) for _ in range(edge_types)]
@@ -26,7 +27,7 @@ class MLPDecoder(nn.Module):
         self.msg_out_shape = msg_out
         self.skip_first_edge_type = skip_first
 
-        self.out_fc1 = nn.Linear(n_in_node + msg_out, n_hid)
+        self.out_fc1 = nn.Linear(n_in_node, n_hid)
         self.out_fc2 = nn.Linear(n_hid, n_hid)
         self.out_fc3 = nn.Linear(n_hid, n_in_node)
 
@@ -50,7 +51,8 @@ class MLPDecoder(nn.Module):
         pre_msg = torch.cat([senders, receivers], dim=-1)
 
         all_msgs = torch.zeros(
-            pre_msg.size(0), pre_msg.size(1), pre_msg.size(2), self.msg_out_shape
+            pre_msg.size(0), pre_msg.size(
+                1), pre_msg.size(2), self.msg_out_shape
         )
 
         if single_timestep_inputs.is_cuda:
@@ -67,7 +69,7 @@ class MLPDecoder(nn.Module):
             msg = F.relu(self.msg_fc1[i](pre_msg))
             msg = F.dropout(msg, p=self.dropout_prob)
             msg = F.relu(self.msg_fc2[i](msg))
-            msg = msg * single_timestep_rel_type[:, :, :, i : i + 1]
+            msg = msg * single_timestep_rel_type[:, :, :, i: i + 1]
             all_msgs += msg
 
         # Aggregate all msgs to receiver
@@ -86,13 +88,14 @@ class MLPDecoder(nn.Module):
         return single_timestep_inputs + pred
 
     def forward(self, inputs, rel_type, rel_rec, rel_send, pred_steps=1):
+        # [batch_size, num_atoms, num_timesteps, num_dims]
         # NOTE: Assumes that we have the same graph across all samples.
 
         inputs = inputs.transpose(1, 2).contiguous()
-
+        # [batch_size, num_timesteps, num_atoms, num_dims]
         sizes = [
             rel_type.size(0),
-            inputs.size(1),
+            inputs.size(1),  # num_timesteps
             rel_type.size(1),
             rel_type.size(2),
         ]  # batch, sequence length, interactions between particles, interaction types

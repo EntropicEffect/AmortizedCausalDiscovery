@@ -6,7 +6,6 @@ from torch.utils.data import DataLoader
 
 
 def load_data(args):
-    loc_max, loc_min, vel_max, vel_min = None, None, None, None
     train_loader, valid_loader, test_loader = None, None, None
 
     if "kuramoto" in args.suffix:
@@ -19,7 +18,7 @@ def load_data(args):
     else:
         raise NameError("Unknown data to be loaded")
 
-    return train_loader, valid_loader, test_loader, loc_max, loc_min, vel_max, vel_min
+    return train_loader, valid_loader, test_loader
 
 
 def normalize(x, x_min, x_max):
