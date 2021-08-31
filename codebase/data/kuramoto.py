@@ -186,7 +186,8 @@ def simulate_kuramoto(num_atoms, num_timesteps=10000, T=None, dt=0.01, undirecte
 
     intrinsic_freq = np.random.rand(num_atoms) * 9 + 1.
     initial_phase = np.random.rand(num_atoms) * 2 * np.pi
-    edges = np.random.choice(2, size=(num_atoms, num_atoms), p=[0.5, 0.5])
+    edges = np.random.normal(size=(num_atoms, num_atoms))*np.random.choice(2, size=(num_atoms, num_atoms), p=[0.5, 0.5])
+    
     if undirected:
         edges = np.tril(edges) + np.tril(edges, -1).T    ## created symmetric edges matrix (i.e. undirected edges)
     np.fill_diagonal(edges, 0)
