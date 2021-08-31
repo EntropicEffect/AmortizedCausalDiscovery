@@ -27,7 +27,6 @@ class CNNEncoder(Encoder):
         else:
             print("Using CNN encoder.")
 
-        self.init_weights()
 
     def forward(self, inputs, rel_rec, rel_send):
 
