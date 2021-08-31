@@ -27,6 +27,7 @@ class Encoder(nn.Module):
         """Based on https://github.com/ethanfetaya/NRI (MIT License)."""
         # NOTE: Assumes that we have the same graph across all samples.
 
+        # [num_sims, num_atoms, num_timesteps * num_dims]
         x = inputs.view(inputs.size(0), inputs.size(1), -1)
 
         receivers = torch.matmul(rel_rec, x)
@@ -57,7 +58,7 @@ class Encoder(nn.Module):
         # NOTE: Assumes that we have the same graph across all samples.
         receivers = torch.matmul(rel_rec, x)
         senders = torch.matmul(rel_send, x)
-        edges = torch.cat([senders,receivers], dim=2)
+        edges = torch.cat([senders, receivers], dim=2)
         return edges
 
     @abstractmethod
