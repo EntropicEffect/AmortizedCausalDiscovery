@@ -7,12 +7,11 @@ from model.modules import *
 from model.MLPEncoder import MLPEncoder
 from model.CNNEncoder import CNNEncoder
 from model.MLPEncoderUnobserved import MLPEncoderUnobserved
-from model.EncoderGlobalTemp import CNNEncoderGlobalTemp
+
 
 from model.MLPDecoder import MLPDecoder
 from model.RNNDecoder import RNNDecoder
-from model.SimulationDecoder import SimulationDecoder
-from model.DecoderGlobalTemp import MLPDecoderGlobalTemp, SimulationDecoderGlobalTemp
+
 
 from model import utils
 
