@@ -49,8 +49,7 @@ def data_preparation(
     vel_min,
     vel_max,
     off_diag_idx,
-    num_atoms,
-    temperature=None,
+    num_atoms
 ):
     """Based on https://github.com/ethanfetaya/NRI (MIT License)."""
 
@@ -70,10 +69,7 @@ def data_preparation(
 
     edges = edges[:, off_diag_idx]
 
-    if temperature is not None:
-        dataset = TensorDataset(feat, edges, temperature)
-    else:
-        dataset = TensorDataset(feat, edges)
+    dataset = TensorDataset(feat, edges)
 
     return dataset
 
@@ -141,13 +137,7 @@ def load_ode_data(args, batch_size=1, suffix="", datadir="data"):
 
 
 def unpack_batches(args, minibatch):
-    if args.load_temperatures:
-        (data, relations, temperatures) = minibatch
-    else:
-        (data, relations) = minibatch
-        temperatures = None
+    (data, relations) = minibatch
     if args.cuda:
         data, relations = data.cuda(), relations.cuda()
-        if args.load_temperatures:
-            temperatures = temperatures.cuda()
-    return data, relations, temperatures
+    return data, relations
