@@ -21,8 +21,6 @@ class MLPEncoder(Encoder):
             print("Using MLP encoder.")
         self.fc_out = nn.Linear(n_hid, n_out)
 
-        self.init_weights()
-
     def forward(self, inputs, rel_rec, rel_send):
         # Input shape: [num_sims, num_atoms, num_timesteps, num_dims]
         x = inputs.view(inputs.size(0), inputs.size(1), -1)

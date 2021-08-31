@@ -65,62 +65,47 @@ def load_encoder(args):
                 args.factor,
             )
 
-    encoder, num_GPU = utils.distribute_over_GPUs(args, encoder, num_GPU=args.num_GPU)
+    encoder, num_GPU = utils.distribute_over_GPUs(
+        args, encoder, num_GPU=args.num_GPU)
     if args.load_folder:
         print("Loading model file")
         args.encoder_file = os.path.join(args.load_folder, "encoder.pt")
-        encoder.load_state_dict(torch.load(args.encoder_file, map_location=args.device))
+        encoder.load_state_dict(torch.load(
+            args.encoder_file, map_location=args.device))
 
     return encoder
 
 
 def load_decoder(args, loc_max, loc_min, vel_max, vel_min):
-    if args.global_temp:
-        if args.decoder == "mlp":
-            decoder = MLPDecoderGlobalTemp(
-                n_in_node=args.dims,
-                edge_types=args.edge_types,
-                msg_hid=args.decoder_hidden,
-                msg_out=args.decoder_hidden,
-                n_hid=args.decoder_hidden,
-                do_prob=args.decoder_dropout,
-                skip_first=args.skip_first,
-                latent_dim=args.latent_dim,
-            )
-        elif args.decoder == "sim":
-            decoder = SimulationDecoderGlobalTemp(
-                loc_max, loc_min, vel_max, vel_min, args.suffix
-            )
-    else:
-        if args.decoder == "mlp":
-            decoder = MLPDecoder(
-                args,
-                n_in_node=args.dims,
-                edge_types=args.edge_types,
-                msg_hid=args.decoder_hidden,
-                msg_out=args.decoder_hidden,
-                n_hid=args.decoder_hidden,
-                do_prob=args.decoder_dropout,
-                skip_first=args.skip_first,
-            )
-        elif args.decoder == "rnn":
-            decoder = RNNDecoder(
-                n_in_node=args.dims,
-                edge_types=args.edge_types,
-                n_hid=args.decoder_hidden,
-                do_prob=args.decoder_dropout,
-                skip_first=args.skip_first,
-            )
-        elif args.decoder == "sim":
-            decoder = SimulationDecoder(loc_max, loc_min, vel_max, vel_min, args.suffix)
+    if args.decoder == "mlp":
+        decoder = MLPDecoder(
+            args,
+            n_in_node=args.dims,
+            edge_types=args.edge_types,
+            msg_hid=args.decoder_hidden,
+            msg_out=args.decoder_hidden,
+            n_hid=args.decoder_hidden,
+            do_prob=args.decoder_dropout,
+            skip_first=args.skip_first,
+        )
+    elif args.decoder == "rnn":
+        decoder = RNNDecoder(
+            n_in_node=args.dims,
+            edge_types=args.edge_types,
+            n_hid=args.decoder_hidden,
+            do_prob=args.decoder_dropout,
+            skip_first=args.skip_first,
+        )
 
-    decoder, num_GPU = utils.distribute_over_GPUs(args, decoder, num_GPU=args.num_GPU)
+    decoder, num_GPU = utils.distribute_over_GPUs(
+        args, decoder, num_GPU=args.num_GPU)
     # print("Let's use", num_GPU, "GPUs!")
 
     if args.load_folder:
         print("Loading model file")
         args.decoder_file = os.path.join(args.load_folder, "decoder.pt")
-        decoder.load_state_dict(torch.load(args.decoder_file, map_location=args.device))
+        decoder.load_state_dict(torch.load(
+            args.decoder_file, map_location=args.device))
         args.save_folder = False
 
     return decoder

@@ -22,7 +22,8 @@ def train():
 
         for batch_idx, minibatch in enumerate(train_loader):
 
-            data, relations, temperatures = data_loader.unpack_batches(args, minibatch)
+            data, relations, temperatures = data_loader.unpack_batches(
+                args, minibatch)
 
             optimizer.zero_grad()
 
@@ -90,7 +91,8 @@ def val(epoch):
 
     for batch_idx, minibatch in enumerate(valid_loader):
 
-        data, relations, temperatures = data_loader.unpack_batches(args, minibatch)
+        data, relations, temperatures = data_loader.unpack_batches(
+            args, minibatch)
 
         with torch.no_grad():
             losses, _, _, _ = forward_pass_and_eval.forward_pass_and_eval(
@@ -138,13 +140,14 @@ def test(encoder, decoder, epoch):
 
     for batch_idx, minibatch in enumerate(test_loader):
 
-        data, relations, temperatures = data_loader.unpack_batches(args, minibatch)
+        data, relations, temperatures = data_loader.unpack_batches(
+            args, minibatch)
 
         with torch.no_grad():
             assert (data.size(2) - args.timesteps) >= args.timesteps
 
             data_encoder = data[:, :, : args.timesteps, :].contiguous()
-            data_decoder = data[:, :, args.timesteps : -1, :].contiguous()
+            data_decoder = data[:, :, args.timesteps: -1, :].contiguous()
 
             losses, _, _, _, = forward_pass_and_eval.forward_pass_and_eval(
                 args,
@@ -224,11 +227,6 @@ if __name__ == "__main__":
             log_prior = log_prior.cuda()
     else:
         log_prior = None
-
-    if args.global_temp:
-        args.categorical_temperature_prior = utils.get_categorical_temperature_prior(
-            args.alpha, args.num_cats, to_cuda=args.cuda
-        )
 
     ##Train model
     try:

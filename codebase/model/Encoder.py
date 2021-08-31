@@ -10,19 +10,6 @@ class Encoder(nn.Module):
         self.args = args
         self.factor = factor
 
-    def init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.xavier_normal_(m.weight.data)
-                m.bias.data.fill_(0.1)
-            elif isinstance(m, nn.Conv1d):
-                n = m.kernel_size[0] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2.0 / n))
-                m.bias.data.fill_(0.1)
-            elif isinstance(m, nn.BatchNorm1d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-
     def node2edge_temporal(self, inputs, rel_rec, rel_send):
         """Based on https://github.com/ethanfetaya/NRI (MIT License)."""
         # NOTE: Assumes that we have the same graph across all samples.

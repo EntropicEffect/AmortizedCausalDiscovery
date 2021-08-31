@@ -43,7 +43,8 @@ def test_time_adapt(
         for i in range(args.num_tta_steps):
             tta_optimizer.zero_grad()
 
-            tta_edges = utils.gumbel_softmax(tta_logits, tau=args.temp, hard=False)
+            tta_edges = utils.gumbel_softmax(
+                tta_logits, tau=args.temp, hard=False)
 
             tta_output = decoder(
                 tta_data_decoder, tta_edges, rel_rec, rel_send, args.prediction_steps
@@ -54,11 +55,11 @@ def test_time_adapt(
             prob = utils.my_softmax(tta_logits, -1)
 
             if args.prior != 1:
-                loss += utils.kl_categorical(prob, log_prior, predicted_atoms) 
+                loss += utils.kl_categorical(prob, log_prior, predicted_atoms)
             else:
                 loss += utils.kl_categorical_uniform(
                     prob, predicted_atoms, args.edge_types
-                ) 
+                )
 
             loss.backward()
             tta_optimizer.step()
@@ -136,13 +137,6 @@ def forward_pass_and_eval(
         mask_idx = 0
         unobserved = 0
 
-    #################### TEMPERATURE INFERENCE ####################
-    if args.global_temp:
-        ctp = args.categorical_temperature_prior
-        cmax = ctp[-1]
-        uniform_prior_mean = cmax
-        uniform_prior_width = cmax 
-
     #################### ENCODER ####################
     if args.use_encoder:
         if args.unobserved > 0 and args.model_unobserved == 0:
@@ -155,13 +149,6 @@ def forward_pass_and_eval(
             data_decoder = utils_unobserved.add_unobserved_to_data(
                 args, data_decoder, unobserved, mask_idx, diff_data_enc_dec
             )
-        elif args.global_temp:
-            (logits, temperature_samples, 
-                    inferred_mean, inferred_width) = encoder(
-                            data_encoder, rel_rec, rel_send)
-            temperature_samples *= 2 * cmax
-            inferred_mean *= 2 * cmax 
-            inferred_width *= 2 * cmax
         else:
             ## model only the edges
             logits = encoder(data_encoder, rel_rec, rel_send)
@@ -181,7 +168,7 @@ def forward_pass_and_eval(
             log_prior,
         )
 
-    edges = utils.gumbel_softmax(logits, tau=args.temp, hard=hard)
+    edges = logits  # utils.gumbel_softmax(logits, tau=args.temp, hard=hard)
     prob = utils.my_softmax(logits, -1)
 
     target = data_decoder[:, :, 1:, :]
@@ -198,17 +185,7 @@ def forward_pass_and_eval(
             burn_in_steps=args.timesteps - args.prediction_steps,
         )
     else:
-        if args.global_temp:
-            output = decoder(
-                data_decoder, 
-                edges, 
-                temperature_samples, 
-                rel_rec, 
-                rel_send, 
-                args.prediction_steps
-            )
-        else:
-            output = decoder(
+        output = decoder(
                 data_decoder,
                 edges,
                 rel_rec,
@@ -230,17 +207,6 @@ def forward_pass_and_eval(
                 losses["observed_auroc"] = utils.calc_auroc_observed(
                     prob, relations, num_atoms=args.num_atoms
                 )
-
-    if args.global_temp:
-        losses['loss_kl_temp'] = utils.kl_uniform(inferred_width, uniform_prior_width)
-        losses['temp_logprob'] = utils.get_uniform_logprobs(
-                inferred_mean.flatten(), inferred_width.flatten(), temperatures)
-        targets = torch.eq(torch.reshape(ctp, [1, -1]), torch.reshape(temperatures, [-1, 1])).double()
-        preds = utils.get_preds_from_uniform(inferred_mean, inferred_width, ctp)
-
-        losses['temp_precision'] = torch.sum(targets * preds) / torch.sum(preds)
-        losses['temp_recall'] = torch.sum(targets * preds) / torch.sum(targets)
-        losses['temp_corr'] = utils.get_correlation(inferred_mean.flatten(), temperatures)
 
     ## calculate performance based on how many particles are influenced by unobserved one/last one
     if not args.shuffle_unobserved and args.unobserved > 0:
@@ -264,7 +230,7 @@ def forward_pass_and_eval(
     ### output losses ###
     losses["loss_nll"] = utils.nll_gaussian(
         output, target, args.var
-    ) 
+    )
 
     losses["loss_mse"] = F.mse_loss(output, target)
 

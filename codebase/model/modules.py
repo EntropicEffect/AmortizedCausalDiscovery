@@ -5,6 +5,7 @@ import torch
 
 from model import utils
 
+
 class MLP(nn.Module):
     """Based on https://github.com/ethanfetaya/NRI (MIT License)."""
 
@@ -18,21 +19,6 @@ class MLP(nn.Module):
         self.final_linear = final_linear
         if self.final_linear:
             self.fc_final = nn.Linear(n_out, n_out)
-
-        self.init_weights()
-
-    def init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.xavier_normal_(m.weight.data)
-                m.bias.data.fill_(0.1)
-            elif isinstance(m, nn.Conv1d):
-                n = m.kernel_size[0] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2.0 / n))
-                m.bias.data.fill_(0.1)
-            elif isinstance(m, nn.BatchNorm1d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
 
     def batch_norm(self, inputs):
         x = inputs.view(inputs.size(0) * inputs.size(1), -1)
@@ -68,23 +54,12 @@ class CNN(nn.Module):
 
         self.conv1 = nn.Conv1d(n_in, n_hid, kernel_size=5, stride=1, padding=0)
         self.bn1 = nn.BatchNorm1d(n_hid)
-        self.conv2 = nn.Conv1d(n_hid, n_hid, kernel_size=5, stride=1, padding=0)
+        self.conv2 = nn.Conv1d(
+            n_hid, n_hid, kernel_size=5, stride=1, padding=0)
         self.bn2 = nn.BatchNorm1d(n_hid)
         self.conv_predict = nn.Conv1d(n_hid, n_out, kernel_size=1)
         self.conv_attention = nn.Conv1d(n_hid, 1, kernel_size=1)
         self.dropout_prob = do_prob
-
-        self.init_weights()
-
-    def init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv1d):
-                n = m.kernel_size[0] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2.0 / n))
-                m.bias.data.fill_(0.1)
-            elif isinstance(m, nn.BatchNorm1d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
 
     def forward(self, inputs):
         # Input shape: [num_sims * num_edges, num_dims, num_timesteps]

@@ -7,6 +7,7 @@ from model.MLPEncoder import MLPEncoder
 
 _EPS = 1e-10
 
+
 class MLPEncoderUnobserved(MLPEncoder):
     def __init__(self, args, n_in, n_hid, n_out, do_prob=0.0, factor=True):
         super().__init__(args, n_in, n_hid, n_out, do_prob, factor)
@@ -19,9 +20,9 @@ class MLPEncoderUnobserved(MLPEncoder):
             bidirectional=True,
             dropout=do_prob,
         )
-        self.lstm2 = nn.LSTM(n_hid * 2, args.dims, bidirectional=False, dropout=do_prob)
+        self.lstm2 = nn.LSTM(n_hid * 2, args.dims,
+                             bidirectional=False, dropout=do_prob)
 
-        self.init_weights()
         print("Using unobserved encoder.")
 
     def evaluate_unobserved(self, unobserved, target):
@@ -51,7 +52,8 @@ class MLPEncoderUnobserved(MLPEncoder):
         timesteps = inputs.size(2)
 
         # input shape: [num_sims, num_atoms, num_timesteps, num_dims]
-        observed = utils_unobserved.remove_unobserved(self.args, inputs, mask_idx)
+        observed = utils_unobserved.remove_unobserved(
+            self.args, inputs, mask_idx)
 
         observed = observed.permute(2, 0, 1, 3)
         observed = observed.reshape(observed.size(0), observed.size(1), -1)
@@ -64,10 +66,12 @@ class MLPEncoderUnobserved(MLPEncoder):
         # output shape: [num_sims, num_atoms, num_timesteps, num_dims]
 
         target_unobserved = inputs[:, mask_idx, :, :]
-        mse_unobserved = self.evaluate_unobserved(unobserved, target_unobserved)
+        mse_unobserved = self.evaluate_unobserved(
+            unobserved, target_unobserved)
 
         data_encoder = torch.cat(
-            (inputs[:, :mask_idx, :], unobserved, inputs[:, mask_idx + 1 :, :],), dim=1,
+            (inputs[:, :mask_idx, :], unobserved,
+             inputs[:, mask_idx + 1:, :],), dim=1,
         )
 
         output = super().forward(data_encoder, rel_rec, rel_send)
