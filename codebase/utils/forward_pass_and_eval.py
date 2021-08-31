@@ -11,71 +11,6 @@ from model.modules import *
 from model import utils, utils_unobserved
 
 
-def test_time_adapt(
-    args,
-    logits,
-    decoder,
-    data_encoder,
-    rel_rec,
-    rel_send,
-    predicted_atoms,
-    log_prior,
-):
-    with torch.enable_grad():
-        tta_data_decoder = data_encoder.detach()
-
-        if args.use_encoder:
-            ### initialize q(z) with q(z|x)
-            tta_logits = logits.detach()
-            tta_logits.requires_grad = True
-        else:
-            ### initialize q(z) randomly
-            tta_logits = torch.randn_like(
-                logits, device=args.device.type, requires_grad=True
-            )
-
-        tta_optimizer = torch.optim.Adam(
-            [{"params": tta_logits, "lr": args.lr_logits}]
-        )
-        tta_target = data_encoder[:, :, 1:, :].detach()
-
-        ploss = 0
-        for i in range(args.num_tta_steps):
-            tta_optimizer.zero_grad()
-
-            tta_edges = utils.gumbel_softmax(
-                tta_logits, tau=args.temp, hard=False)
-
-            tta_output = decoder(
-                tta_data_decoder, tta_edges, rel_rec, rel_send, args.prediction_steps
-            )
-
-            loss = utils.nll_gaussian(tta_output, tta_target, args.var)
-
-            prob = utils.my_softmax(tta_logits, -1)
-
-            if args.prior != 1:
-                loss += utils.kl_categorical(prob, log_prior, predicted_atoms)
-            else:
-                loss += utils.kl_categorical_uniform(
-                    prob, predicted_atoms, args.edge_types
-                )
-
-            loss.backward()
-            tta_optimizer.step()
-            ploss += loss.cpu().detach()
-
-            if i == 0:
-                first_loss = loss.cpu().detach()
-            if (i + 1) % 10 == 0:
-                print(i, ": ", ploss / 10)
-                ploss = 0
-
-    print("Fine-tuning improvement: ", first_loss - loss.cpu().detach())
-
-    return tta_logits
-
-
 def forward_pass_and_eval(
     args,
     encoder,
@@ -87,10 +22,7 @@ def forward_pass_and_eval(
     hard,
     data_encoder=None,
     data_decoder=None,
-    edge_probs=None,
     testing=False,
-    log_prior=None,
-    temperatures=None
 ):
     start = time.time()
     losses = defaultdict(lambda: torch.zeros((), device=args.device.type))
@@ -140,7 +72,7 @@ def forward_pass_and_eval(
     #################### ENCODER ####################
     if args.use_encoder:
         if args.unobserved > 0 and args.model_unobserved == 0:
-            ## model unobserved time-series
+            # model unobserved time-series
             (
                 logits,
                 unobserved,
@@ -150,23 +82,8 @@ def forward_pass_and_eval(
                 args, data_decoder, unobserved, mask_idx, diff_data_enc_dec
             )
         else:
-            ## model only the edges
+            # model only the edges
             logits = encoder(data_encoder, rel_rec, rel_send)
-    else:
-        logits = edge_probs.unsqueeze(0).repeat(data_encoder.shape[0], 1, 1)
-
-    if args.test_time_adapt and args.num_tta_steps > 0 and testing:
-        assert args.unobserved == 0, "No implementation for test-time adaptation when there are unobserved time-series."
-        logits = test_time_adapt(
-            args,
-            logits,
-            decoder,
-            data_encoder,
-            rel_rec,
-            rel_send,
-            predicted_atoms,
-            log_prior,
-        )
 
     edges = logits  # utils.gumbel_softmax(logits, tau=args.temp, hard=hard)
     prob = utils.my_softmax(logits, -1)
@@ -204,9 +121,6 @@ def forward_pass_and_eval(
                 losses["observed_acc"] = utils.edge_accuracy_observed(
                     logits, relations, num_atoms=args.num_atoms
                 )
-                losses["observed_auroc"] = utils.calc_auroc_observed(
-                    prob, relations, num_atoms=args.num_atoms
-                )
 
     ## calculate performance based on how many particles are influenced by unobserved one/last one
     if not args.shuffle_unobserved and args.unobserved > 0:
@@ -223,21 +137,14 @@ def forward_pass_and_eval(
 
     #################### MAIN LOSSES ####################
     ### latent losses ###
-    losses["loss_kl"] = utils.kl_latent(args, prob, log_prior, predicted_atoms)
     losses["acc"] = utils.edge_accuracy(logits, relations)
-    losses["auroc"] = utils.calc_auroc(prob, relations)
 
     ### output losses ###
-    losses["loss_nll"] = utils.nll_gaussian(
-        output, target, args.var
-    )
 
     losses["loss_mse"] = F.mse_loss(output, target)
 
-    total_loss = losses["loss_nll"] + losses["loss_kl"]
+    total_loss = 0  # FIXME
     total_loss += args.teacher_forcing * losses["mse_unobserved"]
-    if args.global_temp:
-        total_loss += losses['loss_kl_temp']
     losses["loss"] = total_loss
 
     losses["inference time"] = time.time() - start

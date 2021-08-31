@@ -37,8 +37,6 @@ def train():
                 rel_send,
                 args.hard,
                 edge_probs=edge_probs,
-                log_prior=log_prior,
-                temperatures=temperatures,
             )
 
             loss = losses["loss"]
@@ -105,9 +103,7 @@ def val(epoch):
                 rel_send,
                 True,
                 edge_probs=edge_probs,
-                log_prior=log_prior,
                 testing=True,
-                temperatures=temperatures,
             )
 
         val_losses = utils.append_losses(val_losses, losses)
@@ -161,9 +157,7 @@ def test(encoder, decoder, epoch):
                 data_encoder=data_encoder,
                 data_decoder=data_decoder,
                 edge_probs=edge_probs,
-                log_prior=log_prior,
                 testing=True,
-                temperatures=temperatures,
             )
 
         test_losses = utils.append_losses(test_losses, losses)
@@ -193,46 +187,19 @@ if __name__ == "__main__":
     (
         train_loader,
         valid_loader,
-        test_loader,
-        loc_max,
-        loc_min,
-        vel_max,
-        vel_min,
+        test_loader
     ) = data_loader.load_data(args)
 
     rel_rec, rel_send = utils.create_rel_rec_send(args, args.num_atoms)
 
     encoder, decoder, optimizer, scheduler, edge_probs = model_loader.load_model(
-        args, loc_max, loc_min, vel_max, vel_min
-    )
+        args)
 
     logs.write_to_log_file(encoder)
     logs.write_to_log_file(decoder)
 
-    if args.prior != 1:
-        assert 0 <= args.prior <= 1, "args.prior not in the right range"
-        prior = np.array(
-            [args.prior]
-            + [
-                (1 - args.prior) / (args.edge_types - 1)
-                for _ in range(args.edge_types - 1)
-            ]
-        )
-        logs.write_to_log_file("Using prior")
-        logs.write_to_log_file(prior)
-        log_prior = torch.FloatTensor(np.log(prior))
-        log_prior = log_prior.unsqueeze(0).unsqueeze(0)
-
-        if args.cuda:
-            log_prior = log_prior.cuda()
-    else:
-        log_prior = None
-
     ##Train model
     try:
-        if args.test_time_adapt:
-            raise KeyboardInterrupt
-
         best_epoch, epoch = train()
 
     except KeyboardInterrupt:

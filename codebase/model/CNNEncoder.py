@@ -27,7 +27,6 @@ class CNNEncoder(Encoder):
         else:
             print("Using CNN encoder.")
 
-
     def forward(self, inputs, rel_rec, rel_send):
 
         # Input has shape: [num_sims, num_atoms, num_timesteps, num_dims]

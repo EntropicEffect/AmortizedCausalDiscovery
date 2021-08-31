@@ -26,16 +26,8 @@ def load_distribution(args):
 
 
 def load_encoder(args):
-    if args.global_temp:
-        encoder = CNNEncoderGlobalTemp(
-            args,
-            args.dims,
-            args.encoder_hidden,
-            args.edge_types,
-            args.encoder_dropout,
-            args.factor,
-        )
-    elif args.unobserved > 0 and args.model_unobserved == 0:
+
+    if args.unobserved > 0 and args.model_unobserved == 0:
         encoder = MLPEncoderUnobserved(
             args,
             args.timesteps * args.dims,
@@ -75,7 +67,7 @@ def load_encoder(args):
     return encoder
 
 
-def load_decoder(args, loc_max, loc_min, vel_max, vel_min):
+def load_decoder(args):
     if args.decoder == "mlp":
         decoder = MLPDecoder(
             args,
@@ -110,9 +102,9 @@ def load_decoder(args, loc_max, loc_min, vel_max, vel_min):
     return decoder
 
 
-def load_model(args, loc_max, loc_min, vel_max, vel_min):
+def load_model(args):
 
-    decoder = load_decoder(args, loc_max, loc_min, vel_max, vel_min)
+    decoder = load_decoder(args)
 
     if args.use_encoder:
         encoder = load_encoder(args)
