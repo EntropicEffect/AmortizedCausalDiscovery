@@ -2,8 +2,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.distributions as tdist
-from torch.autograd import Variable
-from sklearn.metrics import roc_auc_score
 from collections import defaultdict
 
 
@@ -88,7 +86,7 @@ def create_rel_matrix(args, num_atoms):
     rel_matrix = torch.Tensor(np.random.normal(seize=(num_atoms, num_atoms)))
 
     if args.cuda:
-        rel_maxtrix = rel_matrix.cuda()
+        rel_matrix = rel_matrix.cuda()
 
     return rel_matrix
 
@@ -114,19 +112,6 @@ def average_listdict(listdict, num_atoms):
     return average_list
 
 
-# Latent Temperature Experiment utils
-def get_uniform_parameters_from_latents(latent_params):
-    n_params = latent_params.shape[1]
-    logit_means = latent_params[:, : n_params // 2]
-    logit_widths = latent_params[:, n_params // 2:]
-    means = sigmoid(logit_means)
-    widths = sigmoid(logit_widths)
-    mins, _ = torch.min(
-        torch.cat([means, 1 - means], dim=1), dim=1, keepdim=True)
-    widths = mins * widths
-    return means, widths
-
-
 def sigmoid(x):
     return 1.0 / (1.0 + torch.exp(-x))
 
@@ -139,57 +124,9 @@ def sample_uniform_from_latents(latent_means, latent_width):
     return latents
 
 
-def get_categorical_temperature_prior(mid, num_cats, to_torch=True, to_cuda=True):
-    categories = [mid * (2.0 ** c)
-                  for c in np.arange(num_cats) - (num_cats // 2)]
-    if to_torch:
-        categories = torch.Tensor(categories)
-    if to_cuda:
-        categories = categories.cuda()
-    return categories
-
-
-def kl_uniform(latent_width, prior_width):
-    eps = 1e-8
-    kl = torch.log(prior_width / (latent_width + eps))
-    return kl.mean()
-
-
-def get_uniform_logprobs(inferred_mu, inferred_width, temperatures):
-    latent_dist = tdist.uniform.Uniform(
-        inferred_mu - inferred_width, inferred_mu + inferred_width
-    )
-    cdf = latent_dist.cdf(temperatures)
-    log_prob_default = latent_dist.log_prob(inferred_mu)
-    probs = torch.where(
-        cdf * (1 - cdf) > 0.0, log_prob_default, torch.full(cdf.shape, -8).cuda()
-    )
-    return probs.mean()
-
-
-def get_preds_from_uniform(inferred_mu, inferred_width, categorical_temperature_prior):
-    categorical_temperature_prior = torch.reshape(
-        categorical_temperature_prior, [1, -1]
-    )
-    preds = (
-        (categorical_temperature_prior > inferred_mu - inferred_width)
-        * (categorical_temperature_prior < inferred_mu + inferred_width)
-    ).double()
-    return preds
-
-
 def get_correlation(a, b):
     numerator = torch.sum((a - a.mean()) * (b - b.mean()))
     denominator = torch.sqrt(torch.sum((a - a.mean()) ** 2)) * torch.sqrt(
         torch.sum((b - b.mean()) ** 2)
     )
     return numerator / denominator
-
-
-def get_offdiag_indices(num_nodes):
-    """Based on https://github.com/ethanfetaya/NRI (MIT License)."""
-    ones = torch.ones(num_nodes, num_nodes)
-    eye = torch.eye(num_nodes, num_nodes)
-    offdiag_indices = (ones - eye).nonzero().t()
-    offdiag_indices = offdiag_indices[0] * num_nodes + offdiag_indices[1]
-    return offdiag_indices

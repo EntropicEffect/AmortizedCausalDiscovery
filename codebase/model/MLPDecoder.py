@@ -36,7 +36,7 @@ class MLPDecoder(nn.Module):
         self.dropout_prob = do_prob
 
     def single_step_forward(
-        self, single_timestep_inputs, rel_rec, rel_send, single_timestep_rel_type
+        self, single_timestep_inputs, rel_matrix, single_timestep_rel_type
     ):
 
         # single_timestep_inputs has shape
@@ -46,9 +46,8 @@ class MLPDecoder(nn.Module):
         # [batch_size, num_timesteps, num_atoms*(num_atoms-1), num_edge_types]
 
         # Node2edge
-        receivers = torch.matmul(rel_rec, single_timestep_inputs)
-        senders = torch.matmul(rel_send, single_timestep_inputs)
-        pre_msg = torch.cat([senders, receivers], dim=-1)
+
+        pre_msg = torch.matmul(rel_matrix, single_timestep_inputs)
 
         all_msgs = torch.zeros(
             pre_msg.size(0), pre_msg.size(
@@ -87,7 +86,7 @@ class MLPDecoder(nn.Module):
         # Predict position/velocity difference
         return single_timestep_inputs + pred
 
-    def forward(self, inputs, rel_type, rel_rec, rel_send, pred_steps=1):
+    def forward(self, inputs, rel_type, rel_matrix, pred_steps=1):
         # [batch_size, num_atoms, num_timesteps, num_dims]
         # NOTE: Assumes that we have the same graph across all samples.
 
@@ -115,7 +114,7 @@ class MLPDecoder(nn.Module):
         # Run n prediction steps
         for step in range(0, pred_steps):
             last_pred = self.single_step_forward(
-                last_pred, rel_rec, rel_send, curr_rel_type
+                last_pred, rel_matrix, curr_rel_type
             )
             preds.append(last_pred)
 

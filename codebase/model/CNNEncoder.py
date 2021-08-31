@@ -8,17 +8,17 @@ class CNNEncoder(Encoder):
     """Based on https://github.com/ethanfetaya/NRI (MIT License)."""
 
     def __init__(
-        self, args, n_in, n_hid, n_out, do_prob=0.0, factor=True, n_in_mlp1=None
+        self, args, n_in, n_hid, n_out, do_prob=0.0, factor=False, n_in_mlp1=None
     ):
         super().__init__(args, factor)
 
-        self.cnn = CNN(n_in * 2, n_hid, n_hid, do_prob)
+        self.cnn = CNN(n_in, n_hid, n_hid, do_prob)
 
         if n_in_mlp1 is None:
             n_in_mlp1 = n_hid
         self.mlp1 = MLP(n_in_mlp1, n_hid, n_hid, do_prob)
         self.mlp2 = MLP(n_hid, n_hid, n_hid, do_prob)
-        self.mlp3 = MLP(n_hid * 3, n_hid, n_hid, do_prob)
+        self.mlp3 = MLP(n_hid * 2, n_hid, n_hid, do_prob)
 
         self.fc_out = nn.Linear(n_hid, n_out)
 
@@ -31,12 +31,12 @@ class CNNEncoder(Encoder):
 
         # Input has shape: [num_sims, num_atoms, num_timesteps, num_dims]
         edges = self.node2edge_temporal(inputs, rel_matrix)
+        # [num_sims * num_edges, num_timesteps, num_dims]
         x = self.cnn(edges)
-        x = x.view(inputs.size(0), (inputs.size(1) - 1) * inputs.size(1), -1)
+        x = x.view(inputs.size(0), inputs.size(1) * inputs.size(1), -1)
         x = self.mlp1(x)
-        x_skip = x
-
         if self.factor:
+            x_skip = x
             x = self.edge2node(x, rel_matrix)
             x = self.mlp2(x)
 
