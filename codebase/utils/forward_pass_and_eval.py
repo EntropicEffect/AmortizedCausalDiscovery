@@ -17,7 +17,6 @@ def forward_pass_and_eval(
     decoder,
     data,
     relations,
-    rel_matrix,
     hard,
     data_encoder=None,
     data_decoder=None,
@@ -76,13 +75,13 @@ def forward_pass_and_eval(
                 logits,
                 unobserved,
                 losses["mse_unobserved"],
-            ) = encoder(data_encoder, rel_matrix, mask_idx=mask_idx)
+            ) = encoder(data_encoder, mask_idx=mask_idx)
             data_decoder = utils_unobserved.add_unobserved_to_data(
                 args, data_decoder, unobserved, mask_idx, diff_data_enc_dec
             )
         else:
             # model only the edges
-            logits = encoder(data_encoder, rel_matrix)
+            logits = encoder(data_encoder)
 
     edges = logits
 
@@ -93,7 +92,6 @@ def forward_pass_and_eval(
         output = decoder(
             data_decoder,
             edges,
-            rel_matrix,
             pred_steps=args.prediction_steps,
             burn_in=True,
             burn_in_steps=args.timesteps - args.prediction_steps,
@@ -102,7 +100,6 @@ def forward_pass_and_eval(
         output = decoder(
                 data_decoder,
                 edges,
-                rel_matrix,
                 args.prediction_steps,
             )
 
@@ -133,8 +130,8 @@ def forward_pass_and_eval(
     #################### MAIN LOSSES ####################
     ### latent losses ###
     losses["acc"] = utils.edge_accuracy(logits, relations)
-    losses["lasso_lat"] = 1e-4 * torch.sum(torch.abs(rel_matrix))
-    losses["ridge_lat"] = 1e-5 * torch.linalg.norm(rel_matrix)
+    losses["lasso_lat"] = 1e-4 * torch.sum(torch.abs(edges))
+    losses["ridge_lat"] = 1e-5 * torch.linalg.norm(edges)
 
     ### output losses ###
 

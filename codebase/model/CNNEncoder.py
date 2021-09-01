@@ -1,47 +1,25 @@
 from model.modules import *
 from model.Encoder import Encoder
 
-_EPS = 1e-10
-
 
 class CNNEncoder(Encoder):
     """Based on https://github.com/ethanfetaya/NRI (MIT License)."""
 
     def __init__(
-        self, args, n_in, n_hid, n_out, do_prob=0.0, factor=False, n_in_mlp1=None
+        self, args, n_in, n_hid, n_out, do_prob=0.0
     ):
-        super().__init__(args, factor)
+        super().__init__(args)
 
         self.cnn = CNN(n_in, n_hid, n_hid, do_prob)
 
-        if n_in_mlp1 is None:
-            n_in_mlp1 = n_hid
-        self.mlp1 = MLP(n_in_mlp1, n_hid, n_hid, do_prob)
-        self.mlp2 = MLP(n_hid, n_hid, n_hid, do_prob)
-        self.mlp3 = MLP(n_hid * 2, n_hid, n_hid, do_prob)
+        self.mlp1 = MLP(n_hid, n_hid, n_hid, do_prob)
 
         self.fc_out = nn.Linear(n_hid, n_out)
 
-        if self.factor:
-            print("Using factor graph CNN encoder.")
-        else:
-            print("Using CNN encoder.")
+    def forward(self, inputs):
 
-    def forward(self, inputs, rel_matrix):
-
-        # Input has shape: [num_sims, num_atoms, num_timesteps, num_dims]
-        edges = self.node2edge_temporal(inputs, rel_matrix)
-        # [num_sims * num_edges, num_timesteps, num_dims]
-        x = self.cnn(edges)
+        x = self.cnn(inputs)
+        print("x shape: ", x.shape)
         x = x.view(inputs.size(0), inputs.size(1) * inputs.size(1), -1)
         x = self.mlp1(x)
-        if self.factor:
-            x_skip = x
-            x = self.edge2node(x, rel_matrix)
-            x = self.mlp2(x)
-
-            x = self.node2edge(x, rel_matrix)
-            x = torch.cat((x, x_skip), dim=2)  # Skip connection
-            x = self.mlp3(x)
-
         return self.fc_out(x)

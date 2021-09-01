@@ -36,7 +36,7 @@ class MLPDecoder(nn.Module):
         self.dropout_prob = do_prob
 
     def single_step_forward(
-        self, single_timestep_inputs, rel_matrix, single_timestep_rel_type
+        self, single_timestep_inputs, single_timestep_rel_type
     ):
 
         # single_timestep_inputs has shape
@@ -114,7 +114,7 @@ class MLPDecoder(nn.Module):
         # Run n prediction steps
         for step in range(0, pred_steps):
             last_pred = self.single_step_forward(
-                last_pred, rel_matrix, curr_rel_type
+                last_pred, curr_rel_type
             )
             preds.append(last_pred)
 

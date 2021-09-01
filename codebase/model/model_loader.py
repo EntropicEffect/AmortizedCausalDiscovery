@@ -53,7 +53,6 @@ def load_encoder(args):
                 args.encoder_hidden,
                 args.edge_types,
                 args.encoder_dropout,
-                args.factor,
             )
 
     encoder, num_GPU = utils.distribute_over_GPUs(
